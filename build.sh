@@ -36,11 +36,8 @@ function prepare_anykernel() {
         git -C "$ANYKERNEL_DIR" pull
     fi
 
-    # Clean AnyKernel3 directory
-    rm -f "$ANYKERNEL_DIR/Image"*
-    rm -f "$ANYKERNEL_DIR/dtbo.img"
-    rm -f "$ANYKERNEL_DIR/dt.img"
-    rm -f "$ANYKERNEL_DIR/"*.zip
+    # AnyKernel3 is a git submodule, keep it clean
+    # No need to remove files since we won't be creating them here anymore
 }
 
 function build_kernel() {
@@ -64,7 +61,7 @@ function build_kernel() {
         LLVM_IAS=1
 
     # Check if build succeeded
-    if [ ! -f "$OUT_DIR/arch/$ARCH/boot/Image.gz-dtb" ] && [ ! -f "$OUT_DIR/arch/$ARCH/boot/Image.gz" ] && [ ! -f "$OUT_DIR/arch/$ARCH/boot/Image" ]; then
+    if [ ! -f "$OUT_DIR/arch/$ARCH/boot/Image" ]; then
         echo -e "${RED}Kernel compilation failed!${NC}"
         exit 1
     fi
@@ -75,32 +72,30 @@ function build_kernel() {
 function package_kernel() {
     echo -e "${YELLOW}Packaging kernel with AnyKernel3...${NC}"
 
+    # Create temporary packaging directory in out
+    PACKAGE_DIR="$OUT_DIR/package"
+    rm -rf "$PACKAGE_DIR"
+    mkdir -p "$PACKAGE_DIR"
+
+    # Copy AnyKernel3 files to temporary directory (excluding .git directory)
+    cp -r "$ANYKERNEL_DIR"/* "$PACKAGE_DIR/" 2>/dev/null || true
+    rm -rf "$PACKAGE_DIR/.git"
+
     # Copy kernel image
-    if [ -f "$OUT_DIR/arch/$ARCH/boot/Image.gz-dtb" ]; then
-        cp "$OUT_DIR/arch/$ARCH/boot/Image.gz-dtb" "$ANYKERNEL_DIR/"
-    elif [ -f "$OUT_DIR/arch/$ARCH/boot/Image.gz" ]; then
-        cp "$OUT_DIR/arch/$ARCH/boot/Image.gz" "$ANYKERNEL_DIR/"
-    elif [ -f "$OUT_DIR/arch/$ARCH/boot/Image" ]; then
-        cp "$OUT_DIR/arch/$ARCH/boot/Image" "$ANYKERNEL_DIR/"
+    if [ -f "$OUT_DIR/arch/$ARCH/boot/Image" ]; then
+        cp "$OUT_DIR/arch/$ARCH/boot/Image" "$PACKAGE_DIR/"
     fi
 
-    # Copy dtb if exists
-    if [ -f "$OUT_DIR/arch/$ARCH/boot/dts/qcom/${DEVICE_CODENAME}.dtb" ]; then
-        cp "$OUT_DIR/arch/$ARCH/boot/dts/qcom/${DEVICE_CODENAME}.dtb" "$ANYKERNEL_DIR/dtb"
-    fi
-
-    # Copy dtbo if exists
-    if [ -f "$OUT_DIR/arch/$ARCH/boot/dtbo.img" ]; then
-        cp "$OUT_DIR/arch/$ARCH/boot/dtbo.img" "$ANYKERNEL_DIR/"
-    fi
-
-    # Create zip
-    cd "$ANYKERNEL_DIR" || exit
-    zip -r9 "${KERNEL_NAME}-${DEVICE_CODENAME}-$(date '+%Y%m%d-%H%M').zip" ./*
+    # Create zip in out directory
+    cd "$PACKAGE_DIR" || exit
+    zip -r9 "../${KERNEL_NAME}-${DEVICE_CODENAME}-$(date '+%Y%m%d-%H%M').zip" ./*
     cd - || exit
 
+    # Clean up temporary directory
+    rm -rf "$PACKAGE_DIR"
+
     echo -e "${GREEN}Kernel packaged successfully!${NC}"
-    echo -e "${GREEN}Flashable zip created in: $ANYKERNEL_DIR/${KERNEL_NAME}-${DEVICE_CODENAME}-$(date '+%Y%m%d-%H%M').zip${NC}"
+    echo -e "${GREEN}Flashable zip created in: $OUT_DIR/${KERNEL_NAME}-${DEVICE_CODENAME}-$(date '+%Y%m%d-%H%M').zip${NC}"
 }
 
 # Main execution
