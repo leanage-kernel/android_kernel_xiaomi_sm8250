@@ -2,3 +2,8 @@
 	path = AnyKernel3
 	url = https://github.com/leanage-kernel/AnyKernel3
 	branch = alioth
+[submodule "aosp-clang"]
+	path = aosp-clang
+	url = https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+	branch = main
+	shallow = true
