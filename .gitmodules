@@ -7,3 +7,6 @@
 	url = https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
 	branch = main
 	shallow = true
+[submodule "Wild_KSU"]
+	path = Wild_KSU
+	url = https://github.com/WildKernels/Wild_KSU
